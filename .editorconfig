@@ -1,0 +1,9 @@
+# Root editorconfig
+root = true
+
+# Apply to all files
+[*]
+
+# New line preferences
+end_of_line = crlf
+insert_final_newline = true
