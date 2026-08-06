@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="RestaurantManagement.Tests/RestaurantManagement.Tests.csproj" Id="4c8e7f70-bac4-4c13-a5ec-d39d9756383d" />
+  <Project Path="RestaurantManagement/RestaurantManagement.csproj" Id="636ae663-c827-4bce-8ee8-4bfc0656493e" />
+</Solution>
