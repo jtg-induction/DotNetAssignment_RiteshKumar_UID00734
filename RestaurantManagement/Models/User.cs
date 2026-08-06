@@ -29,7 +29,6 @@ namespace RestaurantManagement.Models
 
         public int RoleId { get; set; }
 
-        [Column(TypeName = "decimal")]
         [Range(0, double.MaxValue)]
         public decimal Balance { get; set; } = 1000;
 

@@ -14,7 +14,6 @@ namespace RestaurantManagement.Models
         [Range(1, int.MaxValue)]
         public int Quantity { get; set; }
 
-        [Column(TypeName = "decimal")]
         [Range(0, double.MaxValue)]
         public decimal Price { get; set; }
 

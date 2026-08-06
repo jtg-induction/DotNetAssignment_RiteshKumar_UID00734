@@ -19,7 +19,6 @@ namespace RestaurantManagement.Models
         [Required]
         public OrderStatus Status { get; set; }
 
-        [Column(TypeName = "decimal")]
         [Range(0, double.MaxValue)]
         public decimal TotalAmount { get; set; }
 
