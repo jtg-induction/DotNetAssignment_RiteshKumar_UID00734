@@ -158,15 +158,16 @@
   <ItemGroup>
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
-    <Compile Include="Configuration\JwtSettings.cs" />
+    <Compile Include="Services\Configuration\EnvironmentConfigurationService.cs" />
+    <Compile Include="Services\Configuration\IEnvironmentConfigurationService.cs" />
     <Compile Include="Controllers\AuthController.cs" />
     <Compile Include="Data\RestaurantDbContext.cs" />
     <Compile Include="Enums\OrderStatus.cs" />
     <Compile Include="Enums\UserRole.cs" />
     <Compile Include="DTOs\AuthResponse.cs" />
     <Compile Include="DTOs\SignupRequest.cs" />
-	<Compile Include="DTOs\LoginRequest.cs" />
-	<Compile Include="DTOs\RefreshTokenRequest.cs" />
+    <Compile Include="DTOs\LoginRequest.cs" />
+    <Compile Include="DTOs\RefreshTokenRequest.cs" />
     <Compile Include="Exceptions\EmailAlreadyExistsException.cs" />
     <Compile Include="Exceptions\PhoneAlreadyExistsException.cs" />
     <Compile Include="Global.asax.cs">

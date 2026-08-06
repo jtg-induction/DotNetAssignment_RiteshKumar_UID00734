@@ -1,4 +1,5 @@
 ﻿using RestaurantManagement.Models;
+using RestaurantManagement.Services.Configuration;
 using System;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,18 +9,26 @@ namespace RestaurantManagement.Services.Auth
     public class RefreshTokenService : IRefreshTokenService
     {
         private const int TokenSizeInBytes = 64;
-        private const int ExpiryDays = 7;
 
-        public RefreshTokenResult CreateRefreshToken(long userId)
+        private readonly IEnvironmentConfigurationService _environmentConfigurationService;
+
+        public RefreshTokenService(
+            IEnvironmentConfigurationService environmentConfigurationService)
+        {
+            _environmentConfigurationService = environmentConfigurationService;
+        }
+
+        public RefreshTokenResult CreateRefreshToken()
         {
             string plainTextToken = GenerateRefreshToken();
             string tokenHash = HashRefreshToken(plainTextToken);
+
             RefreshToken refreshToken = new RefreshToken
             {
-                UserId = userId,
                 TokenHash = tokenHash,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(ExpiryDays),
+                ExpiresAt = DateTime.UtcNow.AddDays(
+                    _environmentConfigurationService.RefreshTokenExpiryDays),
                 IsRevoked = false,
                 RevokedAt = null
             };
@@ -44,10 +53,12 @@ namespace RestaurantManagement.Services.Auth
         private string GenerateRefreshToken()
         {
             byte[] randomBytes = new byte[TokenSizeInBytes];
-            using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
+
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
             {
-                randomNumberGenerator.GetBytes(randomBytes);
+                rng.GetBytes(randomBytes);
             }
+
             return Convert.ToBase64String(randomBytes);
         }
 
@@ -57,11 +68,14 @@ namespace RestaurantManagement.Services.Auth
             {
                 byte[] tokenBytes = Encoding.UTF8.GetBytes(token);
                 byte[] hashBytes = sha256.ComputeHash(tokenBytes);
+
                 StringBuilder builder = new StringBuilder();
+
                 foreach (byte hashByte in hashBytes)
                 {
                     builder.Append(hashByte.ToString("x2"));
                 }
+
                 return builder.ToString();
             }
         }

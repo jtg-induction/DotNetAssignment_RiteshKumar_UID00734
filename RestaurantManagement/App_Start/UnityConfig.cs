@@ -2,6 +2,7 @@ using RestaurantManagement.Data;
 using RestaurantManagement.Repository;
 using RestaurantManagement.Repository.Interfaces;
 using RestaurantManagement.Services.Auth;
+using RestaurantManagement.Services.Configuration;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using Unity;
@@ -53,6 +54,10 @@ namespace RestaurantManagement
             // Stateless Services 
             container.RegisterType<IPasswordHasher, PasswordHasher>(
                 new ContainerControlledLifetimeManager()
+            );
+
+            container.RegisterType<IEnvironmentConfigurationService, EnvironmentConfigurationService>(
+                 new ContainerControlledLifetimeManager()
             );
 
             container.RegisterType<IJwtService, JwtService>(

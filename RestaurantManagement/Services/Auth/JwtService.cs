@@ -1,7 +1,7 @@
 ﻿using Microsoft.IdentityModel.Tokens;
-using RestaurantManagement.Configuration;
 using RestaurantManagement.Enums;
 using RestaurantManagement.Models;
+using RestaurantManagement.Services.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,37 +13,14 @@ namespace RestaurantManagement.Services.Auth
     public class JwtService : IJwtService
     {
         private readonly JwtSecurityTokenHandler _tokenHandler;
-        private readonly JwtSettings _jwtSettings;
+        private readonly IEnvironmentConfigurationService _environmentConfigurationService;
 
-        public JwtService(JwtSecurityTokenHandler tokenHandler)
+        public JwtService(
+            JwtSecurityTokenHandler tokenHandler,
+            IEnvironmentConfigurationService environmentConfigurationService)
         {
-            _jwtSettings = LoadJwtSettings();
             _tokenHandler = tokenHandler;
-        }
-
-        private JwtSettings LoadJwtSettings()
-        {
-            return new JwtSettings
-            {
-                Secret = GetRequiredEnvironmentVariable("JWT_SECRET"),
-                Issuer = GetRequiredEnvironmentVariable("JWT_ISSUER"),
-                Audience = GetRequiredEnvironmentVariable("JWT_AUDIENCE"),
-                AccessTokenExpiryMinutes = int.Parse(GetRequiredEnvironmentVariable("JWT_ACCESS_TOKEN_EXPIRY_MINUTES")),
-                RefreshTokenExpiryDays = int.Parse(GetRequiredEnvironmentVariable("JWT_REFRESH_TOKEN_EXPIRY_DAYS"))
-            };
-        }
-
-        private string GetRequiredEnvironmentVariable(string variableName)
-        {
-            string value = Environment.GetEnvironmentVariable(variableName);
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new InvalidOperationException(
-                    $"Environment variable '{variableName}' is not configured.");
-            }
-
-            return value;
+            _environmentConfigurationService = environmentConfigurationService;
         }
 
         public string GenerateAccessToken(User user)
@@ -88,7 +65,8 @@ namespace RestaurantManagement.Services.Auth
 
         private SigningCredentials CreateSigningCredentials()
         {
-            SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+            SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_environmentConfigurationService.JwtSecret));
+
             return new SigningCredentials(
                 key,
                 SecurityAlgorithms.HmacSha256);
@@ -100,7 +78,7 @@ namespace RestaurantManagement.Services.Auth
         {
             return new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+                expires: DateTime.UtcNow.AddMinutes(_environmentConfigurationService.AccessTokenExpiryMinutes),
                 signingCredentials: signingCredentials);
         }
 

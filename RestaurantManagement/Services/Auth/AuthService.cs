@@ -1,10 +1,11 @@
 ﻿using RestaurantManagement.DTOs.Requests;
 using RestaurantManagement.DTOs.Responses;
 using RestaurantManagement.Enums;
+using RestaurantManagement.Exceptions;
 using RestaurantManagement.Models;
 using RestaurantManagement.Repository.Interfaces;
-using RestaurantManagement.Exceptions;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace RestaurantManagement.Services.Auth
@@ -58,15 +59,19 @@ namespace RestaurantManagement.Services.Auth
                 RoleId = (int)UserRole.User,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = null,
-                IsActive = true
+                IsActive = true,
+                RefreshTokens = new List<RefreshToken>()
             };
 
+            RefreshTokenResult refreshTokenResult = _refreshTokenService.CreateRefreshToken();
+
+            user.RefreshTokens.Add(refreshTokenResult.RefreshTokenEntity);
+
             _userRepository.Add(user);
+
             await _userRepository.SaveChangesAsync();
+
             string accessToken = _jwtService.GenerateAccessToken(user);
-            RefreshTokenResult refreshTokenResult = _refreshTokenService.CreateRefreshToken(user.UserId);
-            _refreshTokenRepository.Add(refreshTokenResult.RefreshTokenEntity);
-            await _refreshTokenRepository.SaveChangesAsync();
 
             return new AuthResponse
             {
@@ -74,7 +79,7 @@ namespace RestaurantManagement.Services.Auth
                 Name = user.Name,
                 Email = user.Email,
                 AccessToken = accessToken,
-                RefreshToken = refreshTokenResult.PlainTextToken,
+                RefreshToken = refreshTokenResult.PlainTextToken
             };
         }
 
