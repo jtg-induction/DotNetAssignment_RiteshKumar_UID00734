@@ -17,7 +17,6 @@ namespace RestaurantManagement.Models
         [StringLength(250, MinimumLength = 1)]
         public string Description { get; set; }
 
-        [Column(TypeName = "decimal")]
         [Range(0, double.MaxValue)]
         public decimal Price { get; set; }
 

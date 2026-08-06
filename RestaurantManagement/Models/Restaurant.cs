@@ -17,7 +17,6 @@ namespace RestaurantManagement.Models
         [StringLength(500)]
         public string Address { get; set; }
 
-        [ForeignKey("Owner")]
         public long OwnerId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
