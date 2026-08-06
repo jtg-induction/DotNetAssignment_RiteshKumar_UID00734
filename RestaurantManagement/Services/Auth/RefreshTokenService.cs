@@ -17,8 +17,7 @@ namespace RestaurantManagement.Services.Auth
         {
             _environmentConfigurationService = environmentConfigurationService;
         }
-
-        public RefreshTokenResult CreateRefreshToken()
+        public RefreshTokenResult CreateRefreshToken(long? userId = null)
         {
             string plainTextToken = GenerateRefreshToken();
             string tokenHash = HashRefreshToken(plainTextToken);
@@ -27,11 +26,15 @@ namespace RestaurantManagement.Services.Auth
             {
                 TokenHash = tokenHash,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(
-                    _environmentConfigurationService.RefreshTokenExpiryDays),
+                ExpiresAt = DateTime.UtcNow.AddDays(_environmentConfigurationService.RefreshTokenExpiryDays),
                 IsRevoked = false,
                 RevokedAt = null
             };
+
+            if (userId.HasValue)
+            {
+                refreshToken.UserId = userId.Value;
+            }
 
             return new RefreshTokenResult
             {
@@ -54,9 +57,9 @@ namespace RestaurantManagement.Services.Auth
         {
             byte[] randomBytes = new byte[TokenSizeInBytes];
 
-            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+            using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
             {
-                rng.GetBytes(randomBytes);
+                randomNumberGenerator.GetBytes(randomBytes);
             }
 
             return Convert.ToBase64String(randomBytes);

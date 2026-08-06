@@ -112,9 +112,44 @@ namespace RestaurantManagement.Services.Auth
             };
         }
 
-        public Task<AuthResponse> LoginAsync(LoginRequest request)
+        public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
-            throw new NotImplementedException();
+            if(request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            User user = await _userRepository.GetByEmailAsync(request.Email);
+
+            if(user == null)
+            {
+                throw new InvalidCredentialsException();
+            }
+
+            bool isPasswordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
+
+            if(!isPasswordValid)
+            {
+                throw new InvalidCredentialsException();
+            }
+
+            string accessToken = _jwtService.GenerateAccessToken(user);
+
+            RefreshTokenResult refreshTokenResult = _refreshTokenService.CreateRefreshToken(user.UserId);
+
+            _refreshTokenRepository.Add(refreshTokenResult.RefreshTokenEntity);
+
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                UserId = user.UserId,
+                Name = user.Name,
+                Email= user.Email,
+                AccessToken= accessToken,
+                RefreshToken= refreshTokenResult.PlainTextToken,
+            };
+
         }
 
         public Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)

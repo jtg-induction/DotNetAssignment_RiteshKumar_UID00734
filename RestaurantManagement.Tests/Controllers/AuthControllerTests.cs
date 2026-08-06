@@ -163,5 +163,110 @@ namespace RestaurantManagement.Tests.Controllers
                 x => x.SignupAsync(request),
                 Times.Once);
         }
+
+        [Test]
+        public async Task Login_ValidRequest_ReturnsOk()
+        {
+            LoginRequest request = new LoginRequest
+            {
+                Email = "ritesh@test.com",
+                Password = "Password@123"
+            };
+
+            AuthResponse authResponse = new AuthResponse
+            {
+                UserId = 1,
+                Name = "Ritesh",
+                Email = request.Email,
+                AccessToken = "access-token",
+                RefreshToken = "refresh-token"
+            };
+
+            _authService
+                .Setup(x => x.LoginAsync(request))
+                .ReturnsAsync(authResponse);
+
+            IHttpActionResult result = await _controller.Login(request);
+
+            OkNegotiatedContentResult<AuthResponse> okResult =
+                result as OkNegotiatedContentResult<AuthResponse>;
+
+            Assert.That(okResult, Is.Not.Null);
+            Assert.That(okResult.Content.UserId, Is.EqualTo(1));
+            Assert.That(okResult.Content.Name, Is.EqualTo("Ritesh"));
+            Assert.That(okResult.Content.Email, Is.EqualTo(request.Email));
+            Assert.That(okResult.Content.AccessToken, Is.EqualTo("access-token"));
+            Assert.That(okResult.Content.RefreshToken, Is.EqualTo("refresh-token"));
+
+            _authService.Verify(
+                x => x.LoginAsync(request),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task Login_InvalidModel_ReturnsBadRequest()
+        {
+            LoginRequest request = new LoginRequest();
+
+            _controller.ModelState.AddModelError(
+                "Email",
+                "Email is required");
+
+            IHttpActionResult result = await _controller.Login(request);
+
+            Assert.That(result, Is.InstanceOf<InvalidModelStateResult>());
+
+            _authService.Verify(
+                x => x.LoginAsync(It.IsAny<LoginRequest>()),
+                Times.Never);
+        }
+        [Test]
+        public async Task Login_InvalidCredentials_ReturnsUnauthorized()
+        {
+            LoginRequest request = new LoginRequest
+            {
+                Email = "ritesh@test.com",
+                Password = "wrong-password"
+            };
+
+            _authService
+                .Setup(x => x.LoginAsync(request))
+                .ThrowsAsync(new InvalidCredentialsException());
+
+            IHttpActionResult result = await _controller.Login(request);
+
+            NegotiatedContentResult<string> unauthorizedResult =
+                result as NegotiatedContentResult<string>;
+
+            Assert.That(unauthorizedResult, Is.Not.Null);
+            Assert.That(
+                unauthorizedResult.StatusCode,
+                Is.EqualTo(HttpStatusCode.Unauthorized));
+
+            _authService.Verify(
+                x => x.LoginAsync(request),
+                Times.Once);
+        }
+
+
+        [Test]
+        public async Task Login_NullRequest_ReturnsBadRequest()
+        {
+            LoginRequest request = null;
+
+            IHttpActionResult result = await _controller.Login(request);
+
+            BadRequestErrorMessageResult badRequestResult =
+                result as BadRequestErrorMessageResult;
+
+            Assert.That(badRequestResult, Is.Not.Null);
+            Assert.That(
+                badRequestResult.Message,
+                Is.EqualTo("Request cannot be null."));
+
+            _authService.Verify(
+                x => x.LoginAsync(It.IsAny<LoginRequest>()),
+                Times.Never);
+        }
     }
 }

@@ -170,6 +170,7 @@
     <Compile Include="DTOs\LoginRequest.cs" />
     <Compile Include="DTOs\RefreshTokenRequest.cs" />
     <Compile Include="Exceptions\EmailAlreadyExistsException.cs" />
+    <Compile Include="Exceptions\InvalidCredentialsException.cs" />
     <Compile Include="Exceptions\PhoneAlreadyExistsException.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
