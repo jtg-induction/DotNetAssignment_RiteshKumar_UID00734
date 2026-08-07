@@ -50,7 +50,8 @@ namespace RestaurantManagement.Services.Auth
 
         public void RevokeRefreshToken(RefreshToken refreshToken)
         {
-            throw new NotImplementedException();
+            refreshToken.IsRevoked = true;
+            refreshToken.RevokedAt = DateTime.UtcNow;
         }
 
         private string GenerateRefreshToken()
@@ -65,7 +66,7 @@ namespace RestaurantManagement.Services.Auth
             return Convert.ToBase64String(randomBytes);
         }
 
-        private string HashRefreshToken(string token)
+        public string HashRefreshToken(string token)
         {
             using (SHA256 sha256 = SHA256.Create())
             {
