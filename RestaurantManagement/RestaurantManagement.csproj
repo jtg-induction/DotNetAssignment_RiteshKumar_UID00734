@@ -161,6 +161,7 @@
     <Compile Include="DTOs\LogoutRequest.cs" />
     <Compile Include="Constants\DatabaseErrorCodes.cs" />
     <Compile Include="Exceptions\InactiveUserException.cs" />
+    <Compile Include="Exceptions\InvalidRefreshTokenException.cs" />
     <Compile Include="Services\Configuration\EnvironmentConfigurationService.cs" />
     <Compile Include="Services\Configuration\IEnvironmentConfigurationService.cs" />
     <Compile Include="Controllers\AuthController.cs" />

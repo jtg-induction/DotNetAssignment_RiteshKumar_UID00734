@@ -45,7 +45,15 @@ namespace RestaurantManagement.Services.Auth
 
         public bool VerifyRefreshToken(string plainTextToken, string storedHash)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(plainTextToken) ||
+                string.IsNullOrWhiteSpace(storedHash))
+            {
+                return false;
+            }
+
+            string tokenHash = HashRefreshToken(plainTextToken);
+
+            return tokenHash == storedHash;
         }
 
         public void RevokeRefreshToken(RefreshToken refreshToken)

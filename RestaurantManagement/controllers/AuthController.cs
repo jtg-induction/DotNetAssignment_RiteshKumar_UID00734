@@ -86,6 +86,36 @@ namespace RestaurantManagement.Controllers
         }
 
         [HttpPost]
+        [Route("refresh-token")]
+        public async Task<IHttpActionResult> RefreshToken(RefreshTokenRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                AuthResponse response = await _authService.RefreshTokenAsync(request);
+
+                return Ok(response);
+            }
+            catch (InvalidRefreshTokenException ex)
+            {
+                return Content(HttpStatusCode.Unauthorized, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpPost]
         [Route("logout")]
         public async Task<IHttpActionResult> Logout(LogoutRequest request)
         {

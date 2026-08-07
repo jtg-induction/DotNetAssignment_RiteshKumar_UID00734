@@ -1,9 +1,10 @@
-﻿using System.Data.Entity;
-using System.Linq;
-using System.Threading.Tasks;
-using RestaurantManagement.Data;
+﻿using RestaurantManagement.Data;
 using RestaurantManagement.Models;
 using RestaurantManagement.Repository.Interfaces;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RestaurantManagement.Repository
 {
@@ -19,6 +20,13 @@ namespace RestaurantManagement.Repository
         public async Task<RefreshToken> GetByTokenHashAsync(string tokenHash)
         {
             return await _context.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+        }
+
+        public async Task<List<RefreshToken>> GetAllByUserIdAsync(long userId)
+        {
+            return await _context.RefreshTokens
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
         }
 
         public void Add(RefreshToken refreshToken)

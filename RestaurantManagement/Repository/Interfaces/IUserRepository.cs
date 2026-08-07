@@ -9,6 +9,8 @@ namespace RestaurantManagement.Repository.Interfaces
 
         Task<User> GetByEmailAsync(string email);
 
+        Task<User> GetByIdWithRoleAsync(long userId);
+
         Task<bool> EmailExistsAsync(string email);
 
         Task<bool> PhoneExistsAsync(string phone);

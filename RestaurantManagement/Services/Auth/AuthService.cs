@@ -156,10 +156,73 @@ namespace RestaurantManagement.Services.Auth
             };
 
         }
-
-        public Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            throw new NotImplementedException();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                throw new InvalidRefreshTokenException();
+            }
+
+            string tokenHash = _refreshTokenService.HashRefreshToken(request.RefreshToken);
+
+            RefreshToken refreshToken = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash);
+
+            if (refreshToken == null)
+            {
+                throw new InvalidRefreshTokenException();
+            }
+
+            if (refreshToken.IsRevoked)
+            {
+                List<RefreshToken> userTokens =
+                    await _refreshTokenRepository.GetAllByUserIdAsync(refreshToken.UserId);
+
+                foreach (RefreshToken token in userTokens)
+                {
+                    _refreshTokenService.RevokeRefreshToken(token);
+                }
+
+                await _refreshTokenRepository.SaveChangesAsync();
+
+                throw new InvalidRefreshTokenException();
+            }
+
+            if (refreshToken.ExpiresAt <= DateTime.UtcNow)
+            {
+                throw new InvalidRefreshTokenException();
+            }
+
+            User user = await _userRepository.GetByIdWithRoleAsync(refreshToken.UserId);
+
+            if (user == null)
+            {
+                throw new InvalidRefreshTokenException();
+            }
+
+            _refreshTokenService.RevokeRefreshToken(refreshToken);
+
+            RefreshTokenResult newRefreshTokenResult =
+                _refreshTokenService.CreateRefreshToken(user.UserId);
+
+            _refreshTokenRepository.Add(newRefreshTokenResult.RefreshTokenEntity);
+
+            string accessToken = _jwtService.GenerateAccessToken(user);
+
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                UserId = user.UserId,
+                Name = user.Name,
+                Email = user.Email,
+                AccessToken = accessToken,
+                RefreshToken = newRefreshTokenResult.PlainTextToken
+            };
         }
 
         public async Task LogoutAsync(string refreshToken)
@@ -180,6 +243,15 @@ namespace RestaurantManagement.Services.Auth
 
             if (token.IsRevoked)
             {
+                List<RefreshToken> userTokens = await _refreshTokenRepository.GetAllByUserIdAsync(token.UserId);
+
+                foreach (RefreshToken userToken in userTokens)
+                {
+                    _refreshTokenService.RevokeRefreshToken(userToken);
+                }
+
+                await _refreshTokenRepository.SaveChangesAsync();
+
                 return;
             }
 
