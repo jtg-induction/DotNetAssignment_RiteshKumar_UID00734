@@ -1,13 +1,15 @@
-﻿using RestaurantManagement.DTOs.Requests;
+﻿using RestaurantManagement.Constants;
+using RestaurantManagement.DTOs.Requests;
 using RestaurantManagement.DTOs.Responses;
 using RestaurantManagement.Enums;
 using RestaurantManagement.Exceptions;
 using RestaurantManagement.Models;
+using RestaurantManagement.Constants;
 using RestaurantManagement.Repository.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace RestaurantManagement.Services.Auth
@@ -75,27 +77,26 @@ namespace RestaurantManagement.Services.Auth
             {
                 await _userRepository.SaveChangesAsync();
             }
-            catch(DbUpdateException ex)
+            catch (DbUpdateException ex)
             {
+                SqlException sqlException = ex.InnerException?.InnerException as SqlException;
+
+                if (sqlException != null &&
+                    (sqlException.Number == DatabaseErrorCodes.UniqueConstraintViolation ||
+                     sqlException.Number == DatabaseErrorCodes.PrimaryKeyViolation))
                 {
-                    SqlException sqlException = ex.InnerException?.InnerException as SqlException;
-
-                    if (sqlException != null &&
-                        (sqlException.Number == 2601 || sqlException.Number == 2627))
+                    if (sqlException.Message.Contains("IX_Users_Email"))
                     {
-                        if (sqlException.Message.Contains("IX_Users_Email"))
-                        {
-                            throw new EmailAlreadyExistsException(request.Email);
-                        }
-
-                        if (sqlException.Message.Contains("IX_Users_Phone"))
-                        {
-                            throw new PhoneAlreadyExistsException(request.Phone);
-                        }
+                        throw new EmailAlreadyExistsException(request.Email);
                     }
 
-                    throw;
+                    if (sqlException.Message.Contains("IX_Users_Phone"))
+                    {
+                        throw new PhoneAlreadyExistsException(request.Phone);
+                    }
                 }
+
+                throw;
             }
 
 

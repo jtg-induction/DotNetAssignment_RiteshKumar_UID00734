@@ -158,6 +158,7 @@
   <ItemGroup>
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Constants\DatabaseErrorCodes.cs" />
     <Compile Include="Services\Configuration\EnvironmentConfigurationService.cs" />
     <Compile Include="Services\Configuration\IEnvironmentConfigurationService.cs" />
     <Compile Include="Controllers\AuthController.cs" />
