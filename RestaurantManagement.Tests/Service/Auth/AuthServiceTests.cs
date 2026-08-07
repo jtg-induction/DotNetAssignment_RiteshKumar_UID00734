@@ -132,6 +132,7 @@ namespace RestaurantManagement.Tests.Services
                 Times.Never);
         }
 
+
         [Test]
         public async Task SignupAsync_ValidRequest_ReturnsAuthResponse()
         {
@@ -168,7 +169,6 @@ namespace RestaurantManagement.Tests.Services
                 PlainTextToken = "refresh-token",
                 RefreshTokenEntity = new RefreshToken
                 {
-                    UserId = 1,
                     TokenHash = "hash",
                     CreatedAt = DateTime.UtcNow,
                     ExpiresAt = DateTime.UtcNow.AddDays(7)
@@ -176,7 +176,7 @@ namespace RestaurantManagement.Tests.Services
             };
 
             _refreshTokenService
-                .Setup(x => x.CreateRefreshToken(1))
+                .Setup(x => x.CreateRefreshToken())
                 .Returns(refreshTokenResult);
 
             AuthResponse response = await _authService.SignupAsync(request);
@@ -188,18 +188,32 @@ namespace RestaurantManagement.Tests.Services
             Assert.That(response.AccessToken, Is.EqualTo("access-token"));
             Assert.That(response.RefreshToken, Is.EqualTo("refresh-token"));
 
-            _userRepository.Verify(x => x.EmailExistsAsync(request.Email), Times.Once);
-            _userRepository.Verify(x => x.PhoneExistsAsync(request.Phone), Times.Once);
-            _passwordHasher.Verify(x => x.HashPassword(request.Password), Times.Once);
-            _userRepository.Verify(x => x.Add(It.IsAny<User>()), Times.Once);
-            _userRepository.Verify(x => x.SaveChangesAsync(), Times.Once);
-            _jwtService.Verify(x => x.GenerateAccessToken(It.IsAny<User>()), Times.Once);
-            _refreshTokenService.Verify(x => x.CreateRefreshToken(1), Times.Once);
-            _refreshTokenRepository.Verify(
-                x => x.Add(It.IsAny<RefreshToken>()),
+            _userRepository.Verify(
+                x => x.EmailExistsAsync(request.Email),
                 Times.Once);
-            _refreshTokenRepository.Verify(
+
+            _userRepository.Verify(
+                x => x.PhoneExistsAsync(request.Phone),
+                Times.Once);
+
+            _passwordHasher.Verify(
+                x => x.HashPassword(request.Password),
+                Times.Once);
+
+            _userRepository.Verify(
+                x => x.Add(It.IsAny<User>()),
+                Times.Once);
+
+            _userRepository.Verify(
                 x => x.SaveChangesAsync(),
+                Times.Once);
+
+            _jwtService.Verify(
+                x => x.GenerateAccessToken(It.IsAny<User>()),
+                Times.Once);
+
+            _refreshTokenService.Verify(
+                x => x.CreateRefreshToken(),
                 Times.Once);
         }
 
