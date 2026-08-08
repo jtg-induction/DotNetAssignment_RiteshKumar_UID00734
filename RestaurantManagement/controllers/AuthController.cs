@@ -19,6 +19,7 @@ namespace RestaurantManagement.Controllers
             _authService = authService;
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [Route("signup")]
         public async Task<IHttpActionResult> Signup(SignupRequest request)
@@ -55,6 +56,7 @@ namespace RestaurantManagement.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [Route("login")]
 
@@ -85,6 +87,7 @@ namespace RestaurantManagement.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [Route("refresh-token")]
         public async Task<IHttpActionResult> RefreshToken(RefreshTokenRequest request)
@@ -115,6 +118,7 @@ namespace RestaurantManagement.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost]
         [Route("logout")]
         public async Task<IHttpActionResult> Logout(LogoutRequest request)

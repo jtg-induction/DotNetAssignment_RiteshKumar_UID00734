@@ -153,6 +153,7 @@
     <Compile Include="Controllers\AuthControllerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Service\Auth\AuthServiceTests.cs" />
+    <Compile Include="Service\User\UserServiceTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

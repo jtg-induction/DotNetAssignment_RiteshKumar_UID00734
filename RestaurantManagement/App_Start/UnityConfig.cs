@@ -3,6 +3,8 @@ using RestaurantManagement.Repository;
 using RestaurantManagement.Repository.Interfaces;
 using RestaurantManagement.Services.Auth;
 using RestaurantManagement.Services.Configuration;
+using RestaurantManagement.Services.Users;
+using RestaurantManagement.Services.Users.Interfaces;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using Unity;
@@ -46,8 +48,13 @@ namespace RestaurantManagement
                 new HierarchicalLifetimeManager()
             );
 
+
             // Application Services 
             container.RegisterType<IAuthService, AuthService>(
+                new HierarchicalLifetimeManager()
+            );
+
+            container.RegisterType<IUserService, UserService>(
                 new HierarchicalLifetimeManager()
             );
 
