@@ -4,7 +4,7 @@ namespace RestaurantManagement.Services.Auth
 {
     public interface IRefreshTokenService
     {
-        RefreshTokenResult CreateRefreshToken();
+        RefreshTokenResult CreateRefreshToken(long? userId = null);
 
         bool VerifyRefreshToken(string plainTextToken, string storedHash);
 

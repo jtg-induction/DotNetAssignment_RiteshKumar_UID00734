@@ -54,5 +54,35 @@ namespace RestaurantManagement.Controllers
                 return InternalServerError(ex);
             }
         }
+
+        [HttpPost]
+        [Route("login")]
+
+        public async Task<IHttpActionResult> Login(LoginRequest request)
+        {
+            if(request == null)
+            {
+                return BadRequest("Request cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                AuthResponse reponse = await _authService.LoginAsync(request);
+                return Ok(reponse);
+            }
+            catch (InvalidCredentialsException ex)
+            {
+                return Content(HttpStatusCode.Unauthorized, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
     }
 }
