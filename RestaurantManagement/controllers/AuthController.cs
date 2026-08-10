@@ -84,5 +84,31 @@ namespace RestaurantManagement.Controllers
                 return InternalServerError(ex);
             }
         }
+
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IHttpActionResult> Logout(LogoutRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _authService.LogoutAsync(request.RefreshToken);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
     }
 }

@@ -6,6 +6,8 @@ namespace RestaurantManagement.Services.Auth
     {
         RefreshTokenResult CreateRefreshToken(long? userId = null);
 
+        string HashRefreshToken(string plainTextToken);
+
         bool VerifyRefreshToken(string plainTextToken, string storedHash);
 
         void RevokeRefreshToken(RefreshToken refreshToken);

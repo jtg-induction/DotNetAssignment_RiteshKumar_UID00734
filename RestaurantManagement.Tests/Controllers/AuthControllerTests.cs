@@ -268,5 +268,93 @@ namespace RestaurantManagement.Tests.Controllers
                 x => x.LoginAsync(It.IsAny<LoginRequest>()),
                 Times.Never);
         }
+
+        [Test]
+        public async Task Logout_NullRequest_ReturnsBadRequest()
+        {
+            LogoutRequest request = null;
+
+            IHttpActionResult result = await _controller.Logout(request);
+
+            BadRequestErrorMessageResult badRequestResult =
+                result as BadRequestErrorMessageResult;
+
+            Assert.That(badRequestResult, Is.Not.Null);
+            Assert.That(
+                badRequestResult.Message,
+                Is.EqualTo("Request cannot be null."));
+
+            _authService.Verify(
+                x => x.LogoutAsync(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task Logout_InvalidModel_ReturnsBadRequest()
+        {
+            LogoutRequest request = new LogoutRequest();
+
+            _controller.ModelState.AddModelError(
+                "RefreshToken",
+                "Refresh token is required.");
+
+            IHttpActionResult result = await _controller.Logout(request);
+
+            Assert.That(
+                result,
+                Is.InstanceOf<InvalidModelStateResult>());
+
+            _authService.Verify(
+                x => x.LogoutAsync(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task Logout_ValidRequest_ReturnsOk()
+        {
+            LogoutRequest request = new LogoutRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            _authService
+                .Setup(x => x.LogoutAsync(request.RefreshToken))
+                .Returns(Task.CompletedTask);
+
+            IHttpActionResult result =
+                await _controller.Logout(request);
+
+            Assert.That(
+                result,
+                Is.InstanceOf<OkResult>());
+
+            _authService.Verify(
+                x => x.LogoutAsync(request.RefreshToken),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task Logout_ServiceThrows_ReturnsInternalServerError()
+        {
+            LogoutRequest request = new LogoutRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            _authService
+                .Setup(x => x.LogoutAsync(request.RefreshToken))
+                .ThrowsAsync(new Exception("Database error"));
+
+            IHttpActionResult result =
+                await _controller.Logout(request);
+
+            Assert.That(
+                result,
+                Is.InstanceOf<ExceptionResult>());
+
+            _authService.Verify(
+                x => x.LogoutAsync(request.RefreshToken),
+                Times.Once);
+        }
     }
 }

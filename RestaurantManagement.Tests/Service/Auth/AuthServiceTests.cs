@@ -413,6 +413,121 @@ namespace RestaurantManagement.Tests.Services
                 x => x.SaveChangesAsync(),
                 Times.Once);
         }
+
+        [Test]
+        public void LogoutAsync_NullRefreshToken_ThrowsArgumentNullException()
+        {
+            string refreshToken = null;
+
+            Func<Task> action = () => _authService.LogoutAsync(refreshToken);
+
+            Assert.ThrowsAsync<ArgumentNullException>(action);
+
+            _refreshTokenService.Verify(
+                x => x.HashRefreshToken(It.IsAny<string>()),
+                Times.Never);
+
+            _refreshTokenRepository.Verify(
+                x => x.GetByTokenHashAsync(It.IsAny<string>()),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task LogoutAsync_TokenNotFound_ReturnsWithoutSaving()
+        {
+            string refreshToken = "refresh-token";
+            string tokenHash = "hashed-token";
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(refreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync((RefreshToken)null);
+
+            await _authService.LogoutAsync(refreshToken);
+
+            _refreshTokenService.Verify(
+                x => x.HashRefreshToken(refreshToken),
+                Times.Once);
+
+            _refreshTokenRepository.Verify(
+                x => x.GetByTokenHashAsync(tokenHash),
+                Times.Once);
+
+            _refreshTokenService.Verify(
+                x => x.RevokeRefreshToken(It.IsAny<RefreshToken>()),
+                Times.Never);
+
+            _refreshTokenRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task LogoutAsync_AlreadyRevoked_ReturnsWithoutSaving()
+        {
+            string refreshToken = "refresh-token";
+            string tokenHash = "hashed-token";
+
+            RefreshToken token = new RefreshToken
+            {
+                TokenHash = tokenHash,
+                IsRevoked = true
+            };
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(refreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync(token);
+
+            await _authService.LogoutAsync(refreshToken);
+
+            _refreshTokenService.Verify(
+                x => x.RevokeRefreshToken(It.IsAny<RefreshToken>()),
+                Times.Never);
+
+            _refreshTokenRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task LogoutAsync_ValidRefreshToken_RevokesToken()
+        {
+            string refreshToken = "refresh-token";
+            string tokenHash = "hashed-token";
+
+            RefreshToken token = new RefreshToken
+            {
+                RefreshTokenId = 1,
+                UserId = 1,
+                TokenHash = tokenHash,
+                IsRevoked = false
+            };
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(refreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync(token);
+
+            await _authService.LogoutAsync(refreshToken);
+
+            _refreshTokenService.Verify(
+                x => x.RevokeRefreshToken(token),
+                Times.Once);
+
+            _refreshTokenRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Once);
+        }
     }
 }
 

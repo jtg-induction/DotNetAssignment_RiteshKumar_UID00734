@@ -162,9 +162,30 @@ namespace RestaurantManagement.Services.Auth
             throw new NotImplementedException();
         }
 
-        public Task LogoutAsync(string refreshToken)
+        public async Task LogoutAsync(string refreshToken)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                throw new ArgumentNullException(nameof(refreshToken));
+            }
+
+            string tokenHash = _refreshTokenService.HashRefreshToken(refreshToken);
+
+            RefreshToken token = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash);
+
+            if (token == null)
+            {
+                return;
+            }
+
+            if (token.IsRevoked)
+            {
+                return;
+            }
+
+            _refreshTokenService.RevokeRefreshToken(token);
+
+            await _refreshTokenRepository.SaveChangesAsync();
         }
     }
 }
