@@ -126,6 +126,11 @@ namespace RestaurantManagement.Services.Auth
                 throw new InvalidCredentialsException();
             }
 
+            if (!user.IsActive)
+            {
+                throw new InactiveUserException();
+            }
+
             bool isPasswordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
 
             if(!isPasswordValid)
