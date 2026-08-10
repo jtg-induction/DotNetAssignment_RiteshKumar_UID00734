@@ -8,6 +8,7 @@ using RestaurantManagement.Models;
 using RestaurantManagement.Repository.Interfaces;
 using RestaurantManagement.Services.Auth;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace RestaurantManagement.Tests.Services
@@ -466,34 +467,70 @@ namespace RestaurantManagement.Tests.Services
         }
 
         [Test]
-        public async Task LogoutAsync_AlreadyRevoked_ReturnsWithoutSaving()
+        public async Task LogoutAsync_AlreadyRevokedToken_RevokesAllUserTokensAndSaves()
         {
             string refreshToken = "refresh-token";
             string tokenHash = "hashed-token";
 
-            RefreshToken token = new RefreshToken
+            long userId = 1;
+
+            RefreshToken revokedToken = new RefreshToken
             {
+                RefreshTokenId = 1,
+                UserId = userId,
                 TokenHash = tokenHash,
                 IsRevoked = true
             };
+
+            List<RefreshToken> userTokens = new List<RefreshToken>
+            {
+                revokedToken,
+                new RefreshToken
+                {
+                    RefreshTokenId = 2,
+                    UserId = userId,
+                    TokenHash = "another-token",
+                    IsRevoked = false
+                }
+            };
+
 
             _refreshTokenService
                 .Setup(x => x.HashRefreshToken(refreshToken))
                 .Returns(tokenHash);
 
+
             _refreshTokenRepository
                 .Setup(x => x.GetByTokenHashAsync(tokenHash))
-                .ReturnsAsync(token);
+                .ReturnsAsync(revokedToken);
+
+
+            _refreshTokenRepository
+                .Setup(x => x.GetAllByUserIdAsync(userId))
+                .ReturnsAsync(userTokens);
+
 
             await _authService.LogoutAsync(refreshToken);
 
+
+            _refreshTokenRepository.Verify(
+                x => x.GetByTokenHashAsync(tokenHash),
+                Times.Once);
+
+
+            _refreshTokenRepository.Verify(
+                x => x.GetAllByUserIdAsync(userId),
+                Times.Once);
+
+
             _refreshTokenService.Verify(
                 x => x.RevokeRefreshToken(It.IsAny<RefreshToken>()),
-                Times.Never);
+                Times.Exactly(userTokens.Count));
+
 
             _refreshTokenRepository.Verify(
                 x => x.SaveChangesAsync(),
-                Times.Never);
+                Times.Once);
         }
 
         [Test]
@@ -528,6 +565,403 @@ namespace RestaurantManagement.Tests.Services
                 x => x.SaveChangesAsync(),
                 Times.Once);
         }
+        [Test]
+        public async Task RefreshTokenAsync_NullRequest_ThrowsArgumentNullException()
+        {
+            try
+            {
+                await _authService.RefreshTokenAsync(null);
+
+                Assert.Fail();
+            }
+            catch (ArgumentNullException)
+            {
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_EmptyRefreshToken_ThrowsInvalidRefreshTokenException()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = string.Empty
+            };
+
+            try
+            {
+                await _authService.RefreshTokenAsync(request);
+
+                Assert.Fail();
+            }
+            catch (InvalidRefreshTokenException)
+            {
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_TokenNotFound_ThrowsInvalidRefreshTokenException()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(request.RefreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync((RefreshToken)null);
+
+            try
+            {
+                await _authService.RefreshTokenAsync(request);
+
+                Assert.Fail();
+            }
+            catch (InvalidRefreshTokenException)
+            {
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_ExpiredToken_ThrowsInvalidRefreshTokenException()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken refreshToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                IsRevoked = false,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(-1)
+            };
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(request.RefreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync(refreshToken);
+
+            try
+            {
+                await _authService.RefreshTokenAsync(request);
+
+                Assert.Fail();
+            }
+            catch (InvalidRefreshTokenException)
+            {
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_RevokedToken_ThrowsInvalidRefreshTokenException()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken refreshToken = new RefreshToken
+            {
+                RefreshTokenId = 1,
+                UserId = 1,
+                TokenHash = tokenHash,
+                IsRevoked = true,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(request.RefreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync(refreshToken);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetAllByUserIdAsync(refreshToken.UserId))
+                .ReturnsAsync(new List<RefreshToken>
+                {
+            refreshToken
+                });
+
+            try
+            {
+                await _authService.RefreshTokenAsync(request);
+
+                Assert.Fail();
+            }
+            catch (InvalidRefreshTokenException)
+            {
+                _refreshTokenService.Verify(
+                    x => x.RevokeRefreshToken(refreshToken),
+                    Times.Once);
+
+                _refreshTokenRepository.Verify(
+                    x => x.SaveChangesAsync(),
+                    Times.Once);
+
+                _jwtService.Verify(
+                    x => x.GenerateAccessToken(It.IsAny<User>()),
+                    Times.Never);
+
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_UserNotFound_ThrowsInvalidRefreshTokenException()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken refreshToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                IsRevoked = false,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            _refreshTokenService
+                .Setup(x => x.HashRefreshToken(request.RefreshToken))
+                .Returns(tokenHash);
+
+            _refreshTokenRepository
+                .Setup(x => x.GetByTokenHashAsync(tokenHash))
+                .ReturnsAsync(refreshToken);
+
+            _userRepository
+                .Setup(x => x.GetByIdWithRoleAsync(refreshToken.UserId))
+                .ReturnsAsync((User)null);
+
+            try
+            {
+                await _authService.RefreshTokenAsync(request);
+
+                Assert.Fail();
+            }
+            catch (InvalidRefreshTokenException)
+            {
+                Assert.Pass();
+            }
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_ValidToken_RevokesOldRefreshToken()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken existingToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                IsRevoked = false
+            };
+
+            User user = new User
+            {
+                UserId = 1,
+                Name = "Ritesh",
+                Email = "ritesh@test.com",
+                RoleId = (int)UserRole.User
+            };
+
+            RefreshTokenResult refreshTokenResult = new RefreshTokenResult
+            {
+                PlainTextToken = "new-refresh-token",
+                RefreshTokenEntity = new RefreshToken
+                {
+                    UserId = 1
+                }
+            };
+
+            _refreshTokenService.Setup(x => x.HashRefreshToken(request.RefreshToken)).Returns(tokenHash);
+            _refreshTokenRepository.Setup(x => x.GetByTokenHashAsync(tokenHash)).ReturnsAsync(existingToken);
+            _userRepository.Setup(x => x.GetByIdWithRoleAsync(1)).ReturnsAsync(user);
+            _refreshTokenService.Setup(x => x.CreateRefreshToken(1)).Returns(refreshTokenResult);
+            _jwtService.Setup(x => x.GenerateAccessToken(user)).Returns("access-token");
+
+            await _authService.RefreshTokenAsync(request);
+
+            _refreshTokenService.Verify(
+                x => x.RevokeRefreshToken(existingToken),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_ValidToken_AddsNewRefreshToken()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken existingToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            User user = new User
+            {
+                UserId = 1,
+                Name = "Ritesh",
+                Email = "ritesh@test.com",
+                RoleId = (int)UserRole.User
+            };
+
+            RefreshToken newToken = new RefreshToken
+            {
+                UserId = 1
+            };
+
+            RefreshTokenResult refreshTokenResult = new RefreshTokenResult
+            {
+                PlainTextToken = "new-refresh-token",
+                RefreshTokenEntity = newToken
+            };
+
+            _refreshTokenService.Setup(x => x.HashRefreshToken(request.RefreshToken)).Returns(tokenHash);
+            _refreshTokenRepository.Setup(x => x.GetByTokenHashAsync(tokenHash)).ReturnsAsync(existingToken);
+            _userRepository.Setup(x => x.GetByIdWithRoleAsync(1)).ReturnsAsync(user);
+            _refreshTokenService.Setup(x => x.CreateRefreshToken(1)).Returns(refreshTokenResult);
+            _jwtService.Setup(x => x.GenerateAccessToken(user)).Returns("access-token");
+
+            await _authService.RefreshTokenAsync(request);
+
+            _refreshTokenRepository.Verify(
+                x => x.Add(newToken),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_ValidToken_SavesChangesOnce()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken existingToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            User user = new User
+            {
+                UserId = 1,
+                Name = "Ritesh",
+                Email = "ritesh@test.com",
+                RoleId = (int)UserRole.User
+            };
+
+            RefreshTokenResult refreshTokenResult = new RefreshTokenResult
+            {
+                PlainTextToken = "new-refresh-token",
+                RefreshTokenEntity = new RefreshToken
+                {
+                    UserId = 1
+                }
+            };
+
+            _refreshTokenService.Setup(x => x.HashRefreshToken(request.RefreshToken)).Returns(tokenHash);
+            _refreshTokenRepository.Setup(x => x.GetByTokenHashAsync(tokenHash)).ReturnsAsync(existingToken);
+            _userRepository.Setup(x => x.GetByIdWithRoleAsync(1)).ReturnsAsync(user);
+            _refreshTokenService.Setup(x => x.CreateRefreshToken(1)).Returns(refreshTokenResult);
+            _jwtService.Setup(x => x.GenerateAccessToken(user)).Returns("access-token");
+
+            await _authService.RefreshTokenAsync(request);
+
+            _refreshTokenRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task RefreshTokenAsync_ValidToken_ReturnsAuthResponse()
+        {
+            RefreshTokenRequest request = new RefreshTokenRequest
+            {
+                RefreshToken = "refresh-token"
+            };
+
+            string tokenHash = "hashed-token";
+
+            RefreshToken existingToken = new RefreshToken
+            {
+                UserId = 1,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            User user = new User
+            {
+                UserId = 1,
+                Name = "Ritesh",
+                Email = "ritesh@test.com",
+                RoleId = (int)UserRole.User
+            };
+
+            RefreshTokenResult refreshTokenResult = new RefreshTokenResult
+            {
+                PlainTextToken = "new-refresh-token",
+                RefreshTokenEntity = new RefreshToken
+                {
+                    UserId = 1
+                }
+            };
+
+            _refreshTokenService.Setup(x => x.HashRefreshToken(request.RefreshToken)).Returns(tokenHash);
+            _refreshTokenRepository.Setup(x => x.GetByTokenHashAsync(tokenHash)).ReturnsAsync(existingToken);
+            _userRepository.Setup(x => x.GetByIdWithRoleAsync(1)).ReturnsAsync(user);
+            _refreshTokenService.Setup(x => x.CreateRefreshToken(1)).Returns(refreshTokenResult);
+            _jwtService.Setup(x => x.GenerateAccessToken(user)).Returns("access-token");
+
+            AuthResponse response = await _authService.RefreshTokenAsync(request);
+
+            Assert.That(response.UserId, Is.EqualTo(user.UserId));
+            Assert.That(response.Name, Is.EqualTo(user.Name));
+            Assert.That(response.Email, Is.EqualTo(user.Email));
+            Assert.That(response.AccessToken, Is.EqualTo("access-token"));
+            Assert.That(response.RefreshToken, Is.EqualTo("new-refresh-token"));
+        }
+
+
     }
 }
 
