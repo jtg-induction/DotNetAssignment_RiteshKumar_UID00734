@@ -25,7 +25,8 @@ namespace RestaurantManagement.Controllers
         [HttpPatch]
         [JwtAuthorize(Roles = "User,SuperAdmin")]
         [Route("profile")]
-        public async Task<IHttpActionResult> PatchProfile(PatchProfileRequest request)
+        public async Task<IHttpActionResult> PatchProfile(
+            PatchProfileRequest request)
         {
             if (request == null)
             {
@@ -75,17 +76,18 @@ namespace RestaurantManagement.Controllers
             {
                 long userId = long.Parse(
                     ((ClaimsIdentity)User.Identity)
-                    .FindFirst(JwtRegisteredClaimNames.Sub)
-                    .Value);
-
+                        .FindFirst(JwtRegisteredClaimNames.Sub)
+                        .Value);
 
                 await _userService.DeactivateAccountAsync(userId);
 
+                MessageResponse response =
+                    new MessageResponse
+                    {
+                        Message = "Account deactivated successfully."
+                    };
 
-                return Ok(new
-                {
-                    Message = "Account deactivated successfully."
-                });
+                return Ok(response);
             }
             catch (UserNotFoundException ex)
             {
@@ -103,25 +105,22 @@ namespace RestaurantManagement.Controllers
         [JwtAuthorize(Roles = "User,SuperAdmin")]
         [Route("change-password")]
         public async Task<IHttpActionResult> ChangePassword(
-    ChangePasswordRequest request)
+            ChangePasswordRequest request)
         {
             if (request == null)
             {
                 return BadRequest("Request cannot be null.");
             }
 
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-
             long userId = long.Parse(
                 ((ClaimsIdentity)User.Identity)
                     .FindFirst(JwtRegisteredClaimNames.Sub)
                     .Value);
-
 
             try
             {
@@ -151,6 +150,110 @@ namespace RestaurantManagement.Controllers
             {
                 return Content(
                     HttpStatusCode.BadRequest,
+                    ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpPost]
+        [JwtAuthorize(Roles = "User,SuperAdmin")]
+        [Route("addresses")]
+        public async Task<IHttpActionResult> AddAddress(
+             AddAddressRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            long userId = long.Parse(
+                ((ClaimsIdentity)User.Identity)
+                    .FindFirst(JwtRegisteredClaimNames.Sub)
+                    .Value);
+
+            try
+            {
+                UserAddressResponse response =
+                    await _userService.AddAddressAsync(
+                        userId,
+                        request);
+
+                return Ok(response);
+            }
+            catch (UserNotFoundException ex)
+            {
+                return Content(
+                    HttpStatusCode.NotFound,
+                    ex.Message);
+            }
+            catch (UserInactiveException ex)
+            {
+                return Content(
+                    HttpStatusCode.BadRequest,
+                    ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpPatch]
+        [JwtAuthorize(Roles = "User,SuperAdmin")]
+        [Route("addresses/{addressId:long}")]
+        public async Task<IHttpActionResult> UpdateAddress(
+            long addressId,
+            UpdateAddressRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            long userId = long.Parse(
+                ((ClaimsIdentity)User.Identity)
+                    .FindFirst(JwtRegisteredClaimNames.Sub)
+                    .Value);
+
+            try
+            {
+                UserAddressResponse response =
+                    await _userService.UpdateAddressAsync(
+                        userId,
+                        addressId,
+                        request);
+
+                return Ok(response);
+            }
+            catch (UserNotFoundException ex)
+            {
+                return Content(
+                    HttpStatusCode.NotFound,
+                    ex.Message);
+            }
+            catch (UserInactiveException ex)
+            {
+                return Content(
+                    HttpStatusCode.BadRequest,
+                    ex.Message);
+            }
+            catch (AddressNotFoundException ex)
+            {
+                return Content(
+                    HttpStatusCode.NotFound,
                     ex.Message);
             }
             catch (Exception ex)

@@ -43,6 +43,17 @@ namespace RestaurantManagement.Repository
             return await _context.Users.AnyAsync(u => u.Phone == phone);
         }
 
+        public async Task<UserAddress> GetAddressByIdForUserAsync(
+            long addressId,
+            long userId)
+        {
+            return await _context.UserAddresses
+                .FirstOrDefaultAsync(address =>
+                    address.UserAddressId == addressId &&
+                    address.UserId == userId &&
+                    address.IsActive);
+        }
+
         public void Add(User user)
         {
             _context.Users.Add(user);
@@ -51,6 +62,16 @@ namespace RestaurantManagement.Repository
         public void Update(User user)
         {
             _context.Entry(user).State = EntityState.Modified;
+        }
+
+        public void AddAddress(UserAddress address)
+        {
+            _context.UserAddresses.Add(address);
+        }
+
+        public void UpdateAddress(UserAddress address)
+        {
+            _context.Entry(address).State = EntityState.Modified;
         }
 
         public async Task SaveChangesAsync()

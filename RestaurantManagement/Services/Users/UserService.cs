@@ -240,5 +240,160 @@ namespace RestaurantManagement.Services.Users
 
             await _userRepository.SaveChangesAsync();
         }
+
+        public async Task<UserAddressResponse> AddAddressAsync(
+            long userId,
+            AddAddressRequest request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            User user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+            {
+                throw new UserNotFoundException();
+            }
+
+            if (!user.IsActive)
+            {
+                throw new UserInactiveException();
+            }
+
+            UserAddress address = new UserAddress
+            {
+                UserId = userId,
+                RecipientName = request.RecipientName,
+                Phone = request.Phone,
+                AddressLine1 = request.AddressLine1,
+                AddressLine2 = request.AddressLine2,
+                City = request.City,
+                State = request.State,
+                PostalCode = request.PostalCode,
+                Country = request.Country,
+                Landmark = request.Landmark,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _userRepository.AddAddress(address);
+
+            await _userRepository.SaveChangesAsync();
+
+            return new UserAddressResponse
+            {
+                UserAddressId = address.UserAddressId,
+                RecipientName = address.RecipientName,
+                Phone = address.Phone,
+                AddressLine1 = address.AddressLine1,
+                AddressLine2 = address.AddressLine2,
+                City = address.City,
+                State = address.State,
+                PostalCode = address.PostalCode,
+                Country = address.Country,
+                Landmark = address.Landmark
+            };
+
+        }
+
+        public async Task<UserAddressResponse> UpdateAddressAsync(
+            long userId,
+            long addressId,
+            UpdateAddressRequest request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            User user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+            {
+                throw new UserNotFoundException();
+            }
+
+            if (!user.IsActive)
+            {
+                throw new UserInactiveException();
+            }
+
+            UserAddress address =
+                await _userRepository.GetAddressByIdForUserAsync(
+                    addressId,
+                    userId);
+
+            if (address == null)
+            {
+                throw new AddressNotFoundException();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.RecipientName))
+            {
+                address.RecipientName = request.RecipientName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                address.Phone = request.Phone;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.AddressLine1))
+            {
+                address.AddressLine1 = request.AddressLine1;
+            }
+
+            if (request.AddressLine2 != null)
+            {
+                address.AddressLine2 = request.AddressLine2;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.City))
+            {
+                address.City = request.City;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.State))
+            {
+                address.State = request.State;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PostalCode))
+            {
+                address.PostalCode = request.PostalCode;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Country))
+            {
+                address.Country = request.Country;
+            }
+
+            if (request.Landmark != null)
+            {
+                address.Landmark = request.Landmark;
+            }
+
+            address.UpdatedAt = DateTime.UtcNow;
+
+            _userRepository.UpdateAddress(address);
+
+            await _userRepository.SaveChangesAsync();
+
+            return new UserAddressResponse
+            {
+                UserAddressId = address.UserAddressId,
+                RecipientName = address.RecipientName,
+                Phone = address.Phone,
+                AddressLine1 = address.AddressLine1,
+                AddressLine2 = address.AddressLine2,
+                City = address.City,
+                State = address.State,
+                PostalCode = address.PostalCode,
+                Country = address.Country,
+                Landmark = address.Landmark
+            };
+        }
     }
 }

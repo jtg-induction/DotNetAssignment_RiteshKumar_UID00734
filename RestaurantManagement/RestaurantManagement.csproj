@@ -159,15 +159,21 @@
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\UserController.cs" />
+    <Compile Include="DTOs\AddAddressRequest.cs" />
     <Compile Include="DTOs\ChangePasswordRequest.cs" />
     <Compile Include="DTOs\LogoutRequest.cs" />
     <Compile Include="Constants\DatabaseErrorCodes.cs" />
+    <Compile Include="DTOs\MessageResponse.cs" />
     <Compile Include="DTOs\PatchProfileRequest.cs" />
+    <Compile Include="DTOs\UpdateAddressRequest.cs" />
+    <Compile Include="DTOs\UserAddressResponse.cs" />
     <Compile Include="DTOs\UserProfileResponse.cs" />
+    <Compile Include="Exceptions\AddressNotFoundException.cs" />
     <Compile Include="Exceptions\InvalidPasswordException.cs" />
     <Compile Include="Exceptions\InactiveUserException.cs" />
     <Compile Include="Exceptions\InvalidRefreshTokenException.cs" />
     <Compile Include="Exceptions\SamePasswordException.cs" />
+    <Compile Include="Exceptions\UserInactiveException.cs" />
     <Compile Include="Exceptions\UserNotFoundException.cs" />
     <Compile Include="Filters\JwtAuthenticationFilter.cs" />
     <Compile Include="Filters\JwtAuthorizeAttribute.cs" />
@@ -190,6 +196,10 @@
     <Compile Include="Migrations\202608051100376_InitialCreate.cs" />
     <Compile Include="Migrations\202608051100376_InitialCreate.Designer.cs">
       <DependentUpon>202608051100376_InitialCreate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202608081119166_AddRecipientDetailsToUserAddress.cs" />
+    <Compile Include="Migrations\202608081119166_AddRecipientDetailsToUserAddress.Designer.cs">
+      <DependentUpon>202608081119166_AddRecipientDetailsToUserAddress.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\MenuItem.cs" />
@@ -233,6 +243,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202608051100376_InitialCreate.resx">
       <DependentUpon>202608051100376_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202608081119166_AddRecipientDetailsToUserAddress.resx">
+      <DependentUpon>202608081119166_AddRecipientDetailsToUserAddress.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

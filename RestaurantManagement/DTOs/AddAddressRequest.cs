@@ -1,14 +1,9 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace RestaurantManagement.Models
+namespace RestaurantManagement.DTOs.Requests
 {
-    public class UserAddress
+    public class AddAddressRequest
     {
-        public long UserAddressId { get; set; }
-
-        public long UserId { get; set; }
-
         [Required]
         [StringLength(100, MinimumLength = 1)]
         public string RecipientName { get; set; }
@@ -42,13 +37,5 @@ namespace RestaurantManagement.Models
 
         [StringLength(255, MinimumLength = 1)]
         public string Landmark { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public DateTime? UpdatedAt { get; set; }
-
-        public bool IsActive { get; set; } = true;
-
-        public virtual User User { get; set; }
     }
 }

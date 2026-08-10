@@ -766,5 +766,475 @@ namespace RestaurantManagement.Tests.Services
                 x => x.SaveChangesAsync(),
                 Times.Once);
         }
+
+        [Test]
+        public async Task AddAddressAsync_ReturnsCreatedAddress()
+        {
+            long userId = 21;
+
+            User user = new User
+            {
+                UserId = userId,
+                Name = "Ritesh Kumar",
+                Email = "ritesh@example.com",
+                IsActive = true
+            };
+
+            AddAddressRequest request = new AddAddressRequest
+            {
+                RecipientName = "Ritesh Kumar",
+                Phone = "9876543210",
+                AddressLine1 = "Sector 19",
+                AddressLine2 = "Udyog Vihar",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122016",
+                Country = "India",
+                Landmark = "Near Metro Station"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            _userRepository
+                .Setup(x => x.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
+
+            UserAddressResponse response =
+                await _userService.AddAddressAsync(userId, request);
+
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.RecipientName, Is.EqualTo(request.RecipientName));
+            Assert.That(response.Phone, Is.EqualTo(request.Phone));
+            Assert.That(response.AddressLine1, Is.EqualTo(request.AddressLine1));
+            Assert.That(response.City, Is.EqualTo(request.City));
+            Assert.That(response.State, Is.EqualTo(request.State));
+            Assert.That(response.PostalCode, Is.EqualTo(request.PostalCode));
+            Assert.That(response.Country, Is.EqualTo(request.Country));
+
+            _userRepository.Verify(
+                x => x.AddAddress(It.Is<UserAddress>(a =>
+                    a.UserId == userId &&
+                    a.RecipientName == request.RecipientName &&
+                    a.Phone == request.Phone &&
+                    a.AddressLine1 == request.AddressLine1 &&
+                    a.City == request.City &&
+                    a.State == request.State &&
+                    a.PostalCode == request.PostalCode &&
+                    a.Country == request.Country &&
+                    a.IsActive)),
+                Times.Once);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Once);
+        }
+
+
+        [Test]
+        public void AddAddressAsync_UserNotFound_ThrowsUserNotFoundException()
+        {
+            long userId = 21;
+
+            AddAddressRequest request = new AddAddressRequest
+            {
+                RecipientName = "Ritesh Kumar",
+                Phone = "9876543210",
+                AddressLine1 = "Sector 19",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122016",
+                Country = "India"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync((User)null);
+
+            Func<Task> action = () =>
+                _userService.AddAddressAsync(userId, request);
+
+            Assert.ThrowsAsync<UserNotFoundException>(action);
+
+            _userRepository.Verify(
+                x => x.AddAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public void AddAddressAsync_UserInactive_ThrowsUserInactiveException()
+        {
+            long userId = 21;
+
+            User user = new User
+            {
+                UserId = userId,
+                IsActive = false
+            };
+
+            AddAddressRequest request = new AddAddressRequest
+            {
+                RecipientName = "Ritesh Kumar",
+                Phone = "9876543210",
+                AddressLine1 = "Sector 19",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122016",
+                Country = "India"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            Func<Task> action = () =>
+                _userService.AddAddressAsync(userId, request);
+
+            Assert.ThrowsAsync<UserInactiveException>(action);
+
+            _userRepository.Verify(
+                x => x.AddAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public void AddAddressAsync_NullRequest_ThrowsArgumentNullException()
+        {
+            long userId = 21;
+
+            AddAddressRequest request = null;
+
+            Func<Task> action = () =>
+                _userService.AddAddressAsync(userId, request);
+
+            Assert.ThrowsAsync<ArgumentNullException>(action);
+
+            _userRepository.Verify(
+                x => x.GetByIdAsync(It.IsAny<long>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.AddAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public async Task UpdateAddressAsync_ReturnsUpdatedAddress()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            User user = new User
+            {
+                UserId = userId,
+                IsActive = true
+            };
+
+            UserAddress address = new UserAddress
+            {
+                UserAddressId = addressId,
+                UserId = userId,
+                RecipientName = "Old Name",
+                Phone = "9999999999",
+                AddressLine1 = "Old Address",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122001",
+                Country = "India",
+                IsActive = true
+            };
+
+            UpdateAddressRequest request = new UpdateAddressRequest
+            {
+                RecipientName = "Ritesh Kumar",
+                Phone = "9876543210",
+                AddressLine1 = "Sector 19",
+                AddressLine2 = "Udyog Vihar",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122016",
+                Country = "India",
+                Landmark = "Near Metro Station"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            _userRepository
+                .Setup(x => x.GetAddressByIdForUserAsync(
+                    addressId,
+                    userId))
+                .ReturnsAsync(address);
+
+            _userRepository
+                .Setup(x => x.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
+
+            UserAddressResponse response =
+                await _userService.UpdateAddressAsync(
+                    userId,
+                    addressId,
+                    request);
+
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.UserAddressId, Is.EqualTo(addressId));
+            Assert.That(response.RecipientName, Is.EqualTo(request.RecipientName));
+            Assert.That(response.Phone, Is.EqualTo(request.Phone));
+            Assert.That(response.AddressLine1, Is.EqualTo(request.AddressLine1));
+            Assert.That(response.City, Is.EqualTo(request.City));
+            Assert.That(response.State, Is.EqualTo(request.State));
+            Assert.That(response.PostalCode, Is.EqualTo(request.PostalCode));
+            Assert.That(response.Country, Is.EqualTo(request.Country));
+
+            Assert.That(address.UpdatedAt, Is.Not.Null);
+
+            _userRepository.Verify(
+                x => x.UpdateAddress(address),
+                Times.Once);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Once);
+        }
+
+
+        [Test]
+        public void UpdateAddressAsync_UserNotFound_ThrowsUserNotFoundException()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            UpdateAddressRequest request = new UpdateAddressRequest
+            {
+                City = "Gurgaon"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync((User)null);
+
+            Func<Task> action = () =>
+                _userService.UpdateAddressAsync(
+                    userId,
+                    addressId,
+                    request);
+
+            Assert.ThrowsAsync<UserNotFoundException>(action);
+
+            _userRepository.Verify(
+                x => x.GetAddressByIdForUserAsync(
+                    It.IsAny<long>(),
+                    It.IsAny<long>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.UpdateAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public void UpdateAddressAsync_UserInactive_ThrowsUserInactiveException()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            User user = new User
+            {
+                UserId = userId,
+                IsActive = false
+            };
+
+            UpdateAddressRequest request = new UpdateAddressRequest
+            {
+                City = "Gurgaon"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            Func<Task> action = () =>
+                _userService.UpdateAddressAsync(
+                    userId,
+                    addressId,
+                    request);
+
+            Assert.ThrowsAsync<UserInactiveException>(action);
+
+            _userRepository.Verify(
+                x => x.GetAddressByIdForUserAsync(
+                    It.IsAny<long>(),
+                    It.IsAny<long>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.UpdateAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public void UpdateAddressAsync_AddressNotFound_ThrowsAddressNotFoundException()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            User user = new User
+            {
+                UserId = userId,
+                IsActive = true
+            };
+
+            UpdateAddressRequest request = new UpdateAddressRequest
+            {
+                City = "Gurgaon"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            _userRepository
+                .Setup(x => x.GetAddressByIdForUserAsync(
+                    addressId,
+                    userId))
+                .ReturnsAsync((UserAddress)null);
+
+            Func<Task> action = () =>
+                _userService.UpdateAddressAsync(
+                    userId,
+                    addressId,
+                    request);
+
+            Assert.ThrowsAsync<AddressNotFoundException>(action);
+
+            _userRepository.Verify(
+                x => x.UpdateAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
+
+
+        [Test]
+        public async Task UpdateAddressAsync_PassesUserIdAndAddressIdToRepository()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            User user = new User
+            {
+                UserId = userId,
+                IsActive = true
+            };
+
+            UserAddress address = new UserAddress
+            {
+                UserAddressId = addressId,
+                UserId = userId,
+                RecipientName = "Ritesh Kumar",
+                Phone = "9876543210",
+                AddressLine1 = "Sector 19",
+                City = "Gurgaon",
+                State = "Haryana",
+                PostalCode = "122016",
+                Country = "India",
+                IsActive = true
+            };
+
+            UpdateAddressRequest request = new UpdateAddressRequest
+            {
+                City = "Chandigarh"
+            };
+
+            _userRepository
+                .Setup(x => x.GetByIdAsync(userId))
+                .ReturnsAsync(user);
+
+            _userRepository
+                .Setup(x => x.GetAddressByIdForUserAsync(
+                    addressId,
+                    userId))
+                .ReturnsAsync(address);
+
+            _userRepository
+                .Setup(x => x.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
+
+            await _userService.UpdateAddressAsync(
+                userId,
+                addressId,
+                request);
+
+            _userRepository.Verify(
+                x => x.GetAddressByIdForUserAsync(
+                    addressId,
+                    userId),
+                Times.Once);
+        }
+
+
+        [Test]
+        public void UpdateAddressAsync_NullRequest_ThrowsArgumentNullException()
+        {
+            long userId = 21;
+            long addressId = 10;
+
+            UpdateAddressRequest request = null;
+
+            Func<Task> action = () =>
+                _userService.UpdateAddressAsync(
+                    userId,
+                    addressId,
+                    request);
+
+            Assert.ThrowsAsync<ArgumentNullException>(action);
+
+            _userRepository.Verify(
+                x => x.GetByIdAsync(It.IsAny<long>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.GetAddressByIdForUserAsync(
+                    It.IsAny<long>(),
+                    It.IsAny<long>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.UpdateAddress(It.IsAny<UserAddress>()),
+                Times.Never);
+
+            _userRepository.Verify(
+                x => x.SaveChangesAsync(),
+                Times.Never);
+        }
     }
 }

@@ -15,9 +15,17 @@ namespace RestaurantManagement.Repository.Interfaces
 
         Task<bool> PhoneExistsAsync(string phone);
 
+        Task<UserAddress> GetAddressByIdForUserAsync(
+            long addressId,
+            long userId);
+
         void Add(User user);
 
         void Update(User user);
+
+        void AddAddress(UserAddress address);
+
+        void UpdateAddress(UserAddress address);
 
         Task SaveChangesAsync();
     }
